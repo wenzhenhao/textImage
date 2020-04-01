@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<title>textImage</title>
+</head>
+<style>
+body {
+	font-size: 10px;
+}
+.input-group {
+	display: flex;
+	align-items: center;
+	height: 40px;
+	margin-left: 10px;
+}
+.input-group span {
+	min-width: 80px;
+	text-align: left;
+}
+.text-box {
+	margin: 10px auto;
+}
+.text-box div {
+	/*display: inline-block;*/
+	line-height: 6px;
+	/* letter-spacing: -1px; */
+	font-size: 6px;
+	display: flex;
+	justify-content: center;
+}
+input[type=text] {
+	padding-left: 5px;
+	border: 1px solid grey;
+}
+.tmp-box {
+	font-size: 6px;
+}
+</style>
+<body>
+	<div class="box">
+		<div class="input-group">
+			<span>组成字符串：</span><input type="text" id="str" onchange="getStr(this.value)" placeholder="wzh">
+		</div>
+		<div class="input-group">
+			<span>选择图片：</span><input type="file" id="upload" accept="image/*">
+		</div>
+		<div class="input-group">
+			<button type="button" onclick="addStr(str)" id="transfer" disabled='false'>转换</button>
+		</div>
+	</div>
+	<div class="tmp-box"></div>
+	<div class="text-box">
+	</div>
+	<!-- <canvas id="test" width="350"></canvas> -->
+</body>
+<script src="assets/libs/jquery/jquery.min.js"></script>
+<script>
+var boxWidth = boxHeight = 0;
+// $(document).ready(function(){
+// 	boxWidth = 75 || window.outerWidth - 20;
+// })
+var upload = document.querySelector('#upload');
+var result;
+var imgData;
+var str = 'wzh';
+getStr(str);
+function getStr(val){
+	str = val;
+	if(str == '') str = 'wzh';
+	let strWidth = [];
+	let strHeight = [];
+	let strTotalWidth = 0;
+	let strMaxWidth = 0;
+	for(let i = 0; i < str.length; i++){
+		$(".tmp-box").append('<span>' + str[i] + '</span>');
+	}
+	$(".tmp-box").children().each(function(){
+		strMaxWidth = $(this).width() > strMaxWidth ? $(this).width() : strMaxWidth;
+		strTotalWidth += $(this).width();
+		strWidth.push($(this).width());
+		strHeight.push($(this).height());
+	})
+	$(".tmp-box").html('')
+	// boxWidth = Math.floor(375 / strMaxWidth);
+	let m = Math.min(window.outerWidth - 20, 350);
+	boxWidth = Math.floor(m / strTotalWidth * strWidth.length);
+}
+
+function addStr(str){
+	if(!result){
+		alert('请先选择图片');
+		return;
+	}
+	$("#transfer").prop('disabled', true);
+	$('.text-box').html('');
+	let img = document.createElement('img');
+	img.src = result;
+	img.onload = function(){
+		console.log(img.width)
+		console.log(img.height)
+		if(boxWidth < img.width){}
+		boxHeight = Math.floor(boxWidth * img.height / img.width);
+		var canvas = document.createElement('canvas');
+		var ctx = canvas.getContext("2d");
+		canvas.width = 0 || boxWidth;
+		canvas.height = 0 || boxHeight;
+		ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+		imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+		for (let i = 0; i < imgData.height; i++) {
+			let tmp = '<div>';
+			// let tmp = '';
+			let color = '';
+			let tmpWidth = 0;
+			for (let j = 0; j < imgData.width; j++) {
+					let index = i * 4 * imgData.width + j * 4;
+					let color = `rgba(${imgData.data[index]}, ${imgData.data[index+1]}, ${imgData.data[index+2]}, ${imgData.data[index+3]})`;
+					tmp += '<span data-index="' + index + '" style="color: ' + color + '">' + str[j % str.length] + '</span>';
+					// tmpWidth += strWidth[j % str.length];
+			}
+			// console.log(tmpWidth)
+
+			tmp += '</div>';
+			$('.text-box').append(tmp);
+		}
+		$("#transfer").prop('disabled', false);
+	}
+
+	
+
+}
+function draw(str, imgData, width, height){
+	let fs = 10;
+	let test = document.querySelector('#test');
+	test.width = imgData.width * fs;
+	test.height = imgData.height * fs;
+	let ctx2 = test.getContext('2d');
+	
+	for(let i = 0; i < imgData.height; i++){
+		for(let j = 0; j < imgData.width; j++){
+			let index = i * 4 * imgData.width + j * 4;
+			let sx = j * fs;
+			let sy = i * fs;
+			// let gradient = ctx2.createLinearGradient(sx,sy,sx + fs,sy);
+			// gradient.addColorStop("0","magenta");
+			// gradient.addColorStop("0.5","blue");
+			// gradient.addColorStop("1.0","red");
+			let color = `rgba(${imgData.data[index]}, ${imgData.data[index+1]}, ${imgData.data[index+2]}, ${imgData.data[index+3]})`;
+			ctx2.fillStyle = color;
+			ctx2.font = fs + 'px';
+			ctx2.fillText(str[j % str.length], sx, sy);
+			
+
+
+		}
+	}
+}
+
+upload.onchange = function(e){
+	var file = this.files[0];
+	var reader = new FileReader();
+	reader.readAsDataURL(file);
+	// reader.readAsBinaryString (file);
+	reader.onload = function(evt){
+		result = evt.target.result;
+		// let img = document.querySelector('img');
+		$("#transfer").prop('disabled', false);
+
+	}
+	// var
+}
+base64ToBlob = function(code) {
+  var parts = code.split(';base64,');
+  var contentType = parts[0].split(':')[1];
+  var raw = window.atob(parts[1]);
+  // console.log(parts)
+  // console.log(raw)
+  var rawLength = raw.length;
+
+  var uInt8Array = new Uint8Array(rawLength);
+
+  for(var i = 0; i < rawLength; ++i) {
+    uInt8Array[i] = raw.charCodeAt(i);
+  }
+  // console.log(uInt8Array);
+  return new Blob([uInt8Array], {type: contentType});
+};
+// canvas.drawImage()
+</script>
+</html>
